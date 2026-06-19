@@ -1,7 +1,7 @@
-# Spam Classifier — PySpark + auto-sklearn + MLflow + EvidentlyAI
+# Spam Classifier — PySpark + MLflow + EvidentlyAI
 
 Pipeline complet de classification spam/ham entraîné sur des données synthétiques,
-avec prétraitement distribué, AutoML, suivi d'expériences et dashboard de monitoring.
+avec prétraitement distribué, sélection automatique de modèle, suivi d'expériences et dashboard de monitoring.
 
 ---
 
@@ -10,59 +10,33 @@ avec prétraitement distribué, AutoML, suivi d'expériences et dashboard de mon
 ```
 generate_data.py       preprocess.py          train.py               evaluate.py
 ─────────────────   →  ─────────────────   →  ─────────────────   →  ─────────────────
-300 messages           PySpark                auto-sklearn           EvidentlyAI
-synthétiques           Tokenisation           120 s de budget        ClassificationPreset
-(150 spam/ham)         TF-IDF (500 dims)      SGD / SVC / PA         DataDriftPreset
-data/messages.csv      numpy array            MLflow tracking        reports/*.html
+300 messages           PySpark                Cross-validation       EvidentlyAI
+synthétiques           Tokenisation           SGD / SVC / PA         ClassificationPreset
+(150 spam/ham)         TF-IDF (500 dims)      MLflow tracking        DataDriftPreset
+data/messages.csv      numpy array            meilleur modèle        reports/*.html
 ```
 
 ---
 
-## Démarrage rapide — Docker (recommandé)
-
-### Prérequis
-- [Docker](https://docs.docker.com/get-docker/) ≥ 24
-- [Docker Compose](https://docs.docker.com/compose/install/) ≥ 2.20
-
-### Lancer le projet
-
-```bash
-docker compose up --build -d
-```
-
-Le pipeline s'exécute automatiquement (~3 minutes à cause du budget auto-sklearn).
-Suivre les logs :
-
-```bash
-docker compose logs -f
-```
-
-### Accéder aux dashboards
+## Dashboards
 
 | Dashboard | URL | Description |
 |-----------|-----|-------------|
 | EvidentlyAI | http://localhost:8080/spam_classifier_report.html | Métriques classification + data drift |
 | MLflow UI | http://localhost:5000 | Historique des expériences et artefacts |
 
-> **Note :** Les dashboards s'activent une fois le pipeline terminé (message `Pipeline terminé !` dans les logs)
-> et **restent accessibles en permanence** tant que le conteneur tourne.
-
-### Arrêter
-
-```bash
-docker compose down
-```
+> Les dashboards s'activent une fois le pipeline terminé et **restent accessibles en permanence**.
 
 ---
 
-## Démarrage local (sans Docker)
+## 3 façons de lancer le projet
 
-### Prérequis
-- Python 3.9
-- Java 11+ (`java -version`)
+### Option 1 — Sans Docker (local)
+
+**Prérequis :** Python 3.9, Java 11+
 
 ```bash
-# Créer l'environnement
+# Créer l'environnement virtuel
 python3.9 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -70,11 +44,60 @@ pip install -r requirements.txt
 # Lancer le pipeline
 python main.py
 
-# Ouvrir l'interface MLflow (dans un autre terminal)
-mlflow ui        # → http://localhost:5000
+# Dans un second terminal, lancer MLflow UI
+mlflow ui
 ```
 
-Le rapport EvidentlyAI s'ouvre automatiquement dans le navigateur par défaut.
+Puis ouvrir dans le navigateur :
+- http://localhost:5000
+- http://localhost:8080
+
+---
+
+### Option 2 — Docker Compose (build local)
+
+**Prérequis :** Docker ≥ 24, Docker Compose ≥ 2.20
+
+```bash
+docker compose up --build -d
+```
+
+Suivre la progression :
+
+```bash
+docker compose logs -f
+```
+
+Puis ouvrir dans le navigateur :
+- http://localhost:5000
+- http://localhost:8080/spam_classifier_report.html
+
+---
+
+### Option 3 — Télécharger l'image depuis Docker Hub
+
+**Prérequis :** Docker ≥ 24, Docker Compose ≥ 2.20
+
+```bash
+# 1. Se connecter à Docker Hub
+docker login -u your_dockerhub_username
+
+# 2. Télécharger l'image
+docker pull rochel05/spam_classifier-spam-classifier:latest
+
+# 3. Démarrer le conteneur
+docker compose up -d
+```
+
+Puis ouvrir dans le navigateur :
+- http://localhost:5000
+- http://localhost:8080/spam_classifier_report.html
+
+Pour arrêter :
+
+```bash
+docker compose down
+```
 
 ---
 
@@ -85,12 +108,11 @@ spam_classifier/
 ├── main.py              # Orchestrateur — exécute les 4 étapes
 ├── generate_data.py     # Génère 300 messages synthétiques spam/ham
 ├── preprocess.py        # PySpark : tokenisation + TF-IDF (500 features)
-├── train.py             # auto-sklearn + tracking MLflow
+├── train.py             # Cross-validation + tracking MLflow
 ├── evaluate.py          # Dashboard EvidentlyAI (HTML)
 ├── requirements.txt     # Dépendances Python
-├── run.sh               # Script de lancement local avec venv
 ├── Dockerfile           # Image Docker (Python 3.9 + Java 11)
-├── docker-compose.yml   # Services : pipeline + MLflow UI + serveur rapport
+├── docker-compose.yml   # Service : pipeline + MLflow UI + serveur rapport
 ├── entrypoint.sh        # Script de démarrage du conteneur
 ├── data/                # Données générées à l'exécution
 └── reports/             # Rapports HTML générés à l'exécution
@@ -103,7 +125,6 @@ spam_classifier/
 | Fichier | Variable | Valeur par défaut | Description |
 |---------|----------|-------------------|-------------|
 | `main.py` | `n_samples` | `300` | Nombre de messages générés |
-| `train.py` | `TIME_BUDGET_SEC` | `120` | Budget temps auto-sklearn (secondes) |
 | `train.py` | `TEST_SIZE` | `0.25` | Proportion jeu de test |
 | `preprocess.py` | `NUM_FEATURES` | `500` | Dimensions TF-IDF |
 
@@ -114,6 +135,7 @@ spam_classifier/
 | Composant | Technologie | Rôle |
 |-----------|-------------|------|
 | Prétraitement | PySpark 3.5 | Tokenisation distribuée + TF-IDF |
-| AutoML | auto-sklearn 0.15 | Sélection automatique du modèle |
+| Sélection modèle | scikit-learn 1.1 | Cross-validation SGD / LinearSVC / PassiveAggressive |
 | Suivi | MLflow 2.9 | Logging métriques, artefacts, modèles |
 | Monitoring | EvidentlyAI 0.4 | Dashboard performance + data drift |
+| Image Docker | rochel05/spam_classifier-spam-classifier | Docker Hub |
