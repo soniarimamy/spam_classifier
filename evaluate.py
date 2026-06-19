@@ -71,7 +71,7 @@ def generate_report(
         ClassificationPreset(),   # métriques classification : accuracy, F1, ROC, matrice de confusion
         DataDriftPreset(          # détection de drift entre train et test
             num_stattest="ks",
-            cat_stattest="chi2",
+            cat_stattest="chisquare",
             num_stattest_threshold=0.05,
         ),
     ])

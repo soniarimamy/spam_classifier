@@ -44,8 +44,8 @@ docker compose logs -f
 | EvidentlyAI | http://localhost:8080/spam_classifier_report.html | Métriques classification + data drift |
 | MLflow UI | http://localhost:5000 | Historique des expériences et artefacts |
 
-> **Note :** Les dashboards ne sont disponibles qu'une fois le pipeline terminé
-> (message `Pipeline terminé !` dans les logs).
+> **Note :** Les dashboards s'activent une fois le pipeline terminé (message `Pipeline terminé !` dans les logs)
+> et **restent accessibles en permanence** tant que le conteneur tourne.
 
 ### Arrêter
 
