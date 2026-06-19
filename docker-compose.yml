@@ -1,0 +1,10 @@
+services:
+  spam-classifier:
+    build: .
+    container_name: spam-classifier
+    ports:
+      - "5000:5000"   # MLflow UI
+      - "8080:8080"   # Rapport EvidentlyAI
+    environment:
+      - DOCKER=1
+    restart: unless-stopped
